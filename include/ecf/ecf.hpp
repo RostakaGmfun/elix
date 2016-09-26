@@ -31,6 +31,20 @@ struct entity
     }
 };
 
+template <class ... Properties>
+struct component_def
+{
+    constexpr component_def(const char *name,
+            std::array<const char*, sizeof...(Properties)> &&property_names):
+        name(name),
+        property_names(property_names)
+    {}
+    const char *name;
+    std::array<const char*, sizeof...(Properties)> property_names;
+
+    using property_tuple = std::tuple<Properties...>;
+};
+
 template <class ... Components>
 auto make_entity(const std::string &name)
 {
@@ -57,15 +71,19 @@ template <class Component>
 Component *construct_component(json config)
 {
     std::vector<json> properties;
+    auto &&cdef = Component::component_def;
+    using component_def_type = decltype(cdef);
+    typename component_def_type::property_types props;
     // check if all properties are defined
-    for (const auto &prop : Component::properties) {
+    for (const auto &prop : cdef.property_names) {
         auto p = config.find(prop);
         if (p == config.end()) {
             // Ooops, bad thing
             // There is currently no way to define default property value
             throw std::runtime_error("Property " + std::string(prop) +
-                    " is undefined in component " + std::string(Component::name));
+                    " is undefined in component " + std::string(cdef.name));
         }
+        properties.push_back(*p);
     }
 
     // TODO
@@ -83,12 +101,13 @@ auto load(const std::string &jsonStr)
         auto foreach_lambda = [&entity, &e](auto component)
         {
             using component_type = decltype(component);
-            auto c = entity.find(component.name);
+            auto &&cdef = component_type::component_def;
+            auto c = entity.find(cdef.name);
             if (c == entity.end()) {
                 return;
             }
             if (!(*c).is_object()) {
-                throw std::runtime_error("Component " + std::string(component.name)
+                throw std::runtime_error("Component " + std::string(cdef.name)
                         + " of " + e.name + " has wrong type");
             }
             auto &componentPtr = e.template get<component_type>();

@@ -11,47 +11,45 @@
 
 using vec3 = std::array<float, 3>;
 
-class transform_component {
+class transform_component{
 public:
     transform_component() = default;
-    transform_component(const vec3& position,
-            const std::string &tag):
-        position_(position),
-        tag_(tag)
+    transform_component(std::tuple<vec3, std::string> prop_vals):
+        position_(std::get<0>(prop_vals)),
+        tag_(std::get<1>(prop_vals))
     {}
 
     vec3 &position() { return position_; }
     std::string &tag() { return tag_; }
 
-    static const char *properties[];
-    static constexpr auto name = "transform";
+    static constexpr auto component_def =
+        ecf::component_def<vec3, std::string>("transform", {
+            "position",
+            "tag"
+            });
 
 private:
     vec3 position_;
     std::string tag_;
 };
 
-const char * transform_component::properties[] = {
-        "position",
-        "tag"
-    };
-
 class render_component {
 public:
+    using property_types = std::tuple<transform_component>;
+
     render_component() = default;
-    render_component(const transform_component &transform):
-        transform_(transform)
+    render_component(property_types &&prop_vals):
+        transform_(std::get<0>(prop_vals))
     {}
 
-    static const char *properties[];
-    static constexpr auto name = "render";
+    static constexpr auto component_def =
+        ecf::component_def<transform_component>("render", {
+            "transform"
+            });
+
 
 private:
     transform_component transform_;
-};
-
-const char *render_component::properties[] = {
-    "transform"
 };
 
 TEST_CASE( "Basic test", "[Basic]")
