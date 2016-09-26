@@ -42,7 +42,7 @@ struct component_def
     const char *name;
     std::array<const char*, sizeof...(Properties)> property_names;
 
-    using property_tuple = std::tuple<Properties...>;
+    using property_types = std::tuple<Properties...>;
 };
 
 template <class ... Components>
@@ -71,9 +71,9 @@ template <class Component>
 Component *construct_component(json config)
 {
     std::vector<json> properties;
-    auto &&cdef = Component::component_def;
-    using component_def_type = decltype(cdef);
-    typename component_def_type::property_types props;
+    auto &cdef = Component::component_def;
+    using cdef_type = typename std::remove_reference<decltype(cdef)>::type;
+    typename cdef_type::property_types props;
     // check if all properties are defined
     for (const auto &prop : cdef.property_names) {
         auto p = config.find(prop);

@@ -33,6 +33,9 @@ private:
     std::string tag_;
 };
 
+constexpr decltype(transform_component::component_def)
+    transform_component::component_def;
+
 class render_component {
 public:
     using property_types = std::tuple<transform_component>;
@@ -51,6 +54,9 @@ public:
 private:
     transform_component transform_;
 };
+
+constexpr decltype(render_component::component_def)
+    render_component::component_def;
 
 TEST_CASE( "Basic test", "[Basic]")
 {
