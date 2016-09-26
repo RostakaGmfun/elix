@@ -46,21 +46,15 @@ template <class Func>
 void for_each_component(Func func)
 {}
 
-template <class Func, class Component>
-void call_for_each_component(Func func)
-{
-    func(Component{});
-}
-
 template <class Func, class Component, class ... Components>
 void for_each_component(Func func)
 {
-    call_for_each_component<Func, Component>(func);
+    func(Component{});
     for_each_component<Func, Components...>(func);
 }
 
 template <class Component>
-Component &&construct_component(json config)
+Component *construct_component(json config)
 {
     std::vector<json> properties;
     // check if all properties are defined
@@ -75,7 +69,7 @@ Component &&construct_component(json config)
     }
 
     // TODO
-    return std::move(Component{});
+    return new Component{};
 }
 
 template <class ... Components>
@@ -98,13 +92,8 @@ auto load(const std::string &jsonStr)
                         + " of " + e.name + " has wrong type");
             }
             auto &componentPtr = e.template get<component_type>();
-            if (componentPtr) {
-                throw std::runtime_error("Multiple definitions of "
-                        + std::string(component.name) + " in " + e.name);
-            }
             try {
-                componentPtr = new component_type
-                    (construct_component<component_type>(*c));
+                componentPtr = construct_component<component_type>(*c);
             } catch (std::runtime_error err) {
                 throw std::runtime_error(e.name + ": " + err.what());
             }
