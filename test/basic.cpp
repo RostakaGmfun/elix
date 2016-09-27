@@ -14,7 +14,7 @@ using vec3 = std::array<float, 3>;
 class transform_component{
 public:
     transform_component() = default;
-    transform_component(std::tuple<vec3, std::string> prop_vals):
+    transform_component(std::tuple<vec3, std::string> &&prop_vals):
         position_(std::get<0>(prop_vals)),
         tag_(std::get<1>(prop_vals))
     {}

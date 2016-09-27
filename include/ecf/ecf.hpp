@@ -67,13 +67,34 @@ void for_each_component(Func func)
     for_each_component<Func, Components...>(func);
 }
 
+template <class TupleType, class CurrentTupleType>
+auto &&build_properties_tuple(CurrentTupleType &&current_tuple, std::vector<json> &props)
+{
+    using property_type = typename std::tuple_element<std::tuple_size<CurrentTupleType>::value, TupleType>::type;
+    if (props.size()) {
+        auto prop = props.back();
+        props.pop_back();
+        return build_properties_tuple<TupleType>(std::move(std::tuple_cat(current_tuple,prop.get<property_type>())), props);
+    }
+}
+
+template <class TupleType, class CurrentTupleType = void>
+auto &&build_properties_tuple(std::vector<json> &props)
+{
+    using property_type = typename std::tuple_element<0, TupleType>::type;
+    if (props.size()) {
+        auto prop = props.back();
+        props.pop_back();
+        return build_properties_tuple<TupleType>(std::move(std::make_tuple(prop.get<property_type>())), props);
+    }
+}
+
 template <class Component>
 Component *construct_component(json config)
 {
-    std::vector<json> properties;
     auto &cdef = Component::component_def;
     using cdef_type = typename std::remove_reference<decltype(cdef)>::type;
-    typename cdef_type::property_types props;
+    std::vector<json> properties;
     // check if all properties are defined
     for (const auto &prop : cdef.property_names) {
         auto p = config.find(prop);
@@ -85,9 +106,8 @@ Component *construct_component(json config)
         }
         properties.push_back(*p);
     }
-
     // TODO
-    return new Component{};
+    return new Component(build_properties_tuple<typename cdef_type::property_types>(properties));
 }
 
 template <class ... Components>
