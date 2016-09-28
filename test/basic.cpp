@@ -9,87 +9,100 @@
 
 #include <ecf/ecf.hpp>
 
-using vec3 = std::array<float, 3>;
-
-class transform_component{
-public:
-    transform_component() = default;
-    transform_component(std::tuple<vec3, std::string> &&prop_vals):
-        position_(std::get<0>(prop_vals)),
-        tag_(std::get<1>(prop_vals))
-    {}
-
-    vec3 &position() { return position_; }
-    std::string &tag() { return tag_; }
-
-    static constexpr auto component_def =
-        ecf::component_def<vec3, std::string>("transform", {
-            "position",
-            "tag"
-            });
-
-private:
-    vec3 position_;
-    std::string tag_;
-};
-
-constexpr decltype(transform_component::component_def)
-    transform_component::component_def;
-
-class render_component {
-public:
-    using property_types = std::tuple<transform_component>;
-
-    render_component() = default;
-    render_component(property_types &&prop_vals):
-        transform_(std::get<0>(prop_vals))
+struct Position
+{
+    using property_types = std::tuple<float, float>;
+    Position() = default;
+    ~Position() = default;
+    Position(property_types &&prop_vals):
+        x(std::get<0>(prop_vals)),
+        y(std::get<1>(prop_vals))
     {}
 
     static constexpr auto component_def =
-        ecf::component_def<transform_component>("render", {
-            "transform"
-            });
+        ecf::component_def<float, float>("position", {
+            "x",
+            "y"
+        });
 
-
-private:
-    transform_component transform_;
+    float x;
+    float y;
 };
 
-constexpr decltype(render_component::component_def)
-    render_component::component_def;
+// I like C++ sooo much
+constexpr decltype(Position::component_def) Position::component_def;
+
+struct Spell
+{
+    using property_types = std::tuple<std::string, int>;
+    Spell() = default;
+    ~Spell() = default;
+
+    Spell(property_types &&prop_vals):
+        name(std::get<0>(prop_vals)),
+        damage(std::get<1>(prop_vals))
+    {}
+
+    static constexpr auto component_def =
+        ecf::component_def<std::string, int>("spell", {
+            "name",
+            "damage"
+        });
+
+    std::string name;
+    int damage;
+};
+
+constexpr decltype(Spell::component_def) Spell::component_def;
 
 TEST_CASE( "Basic test", "[Basic]")
 {
-    auto json = R"(
+    auto wizards_json = R"(
     [
         {
-            "__name": "Entity1",
-            "transform": {
-                "position": [1, 2, 3],
-                "tag": "value"
+            "__name": "Wizard1",
+            "position": {
+                "x": 10.5,
+                "y": 19.3
             },
-            "render": {
-                "transform": 1
+            "spell": {
+                "name": "Spell1",
+                "damage": 42
             }
         },
         {
-            "__name": "Entity2",
-            "transform": {
-                "position": [1, 2, 3],
-                "tag": "value"
+            "__name": "Wizard2",
+            "position": {
+                "x": 11.2,
+                "y": 7.6
             },
-            "render": {
-                "transform": 1
+            "spell": {
+                "name": "Spell2",
+                "damage": 13
+            }
+        },
+        {
+            "__name": "Wizard3",
+            "position": {
+                "x": 3.3,
+                "y": 0
             }
         }
     ]
     )";
 
-    auto entities = ecf::load<transform_component, render_component>(json);
-    for (auto &e : entities) {
-        std::cout << e.name << '\n';
-        auto transform = e.get<transform_component>();
-        REQUIRE (transform != nullptr);
-        REQUIRE (transform->position()[0] == 0);
+    auto wizards = ecf::load<Position, Spell>(wizards_json);
+    for(auto wizard : wizards) {
+        std::cout << wizard.name << '\n';
+        auto pos = wizard.get<Position>();
+        if (pos) {
+            std::cout << "Position: " << pos->x << ' ' << pos->y << '\n';
+        }
+        auto spell = wizard.get<Spell>();
+        if (spell) {
+            std::cout << "Spell: " << spell->name << ' ' << spell->damage << '\n';
+        } else {
+            std::cout << wizard.name << " is not a wizard\n";
+        }
     }
 }

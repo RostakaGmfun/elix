@@ -67,26 +67,35 @@ void for_each_component(Func func)
     for_each_component<Func, Components...>(func);
 }
 
-template <class TupleType, class CurrentTupleType>
-auto &&build_properties_tuple(CurrentTupleType &&current_tuple, std::vector<json> &props)
+template <class TupleType, class CurrentTupleType = TupleType>
+auto build_properties_tuple(TupleType &&current_tuple, std::vector<json> &props)
 {
-    using property_type = typename std::tuple_element<std::tuple_size<CurrentTupleType>::value, TupleType>::type;
-    if (props.size()) {
-        auto prop = props.back();
-        props.pop_back();
-        return build_properties_tuple<TupleType>(std::move(std::tuple_cat(current_tuple,prop.get<property_type>())), props);
-    }
+    return current_tuple;
 }
 
-template <class TupleType, class CurrentTupleType = void>
-auto &&build_properties_tuple(std::vector<json> &props)
+template <class TupleType, class CurrentTupleType,
+        class C = typename
+        std::enable_if<!std::is_same<std::decay_t<CurrentTupleType>,
+        std::decay_t<TupleType>>::value,
+        void>::type>
+auto build_properties_tuple(CurrentTupleType &&current_tuple, std::vector<json> &props)
+{
+    using current_size = std::tuple_size<CurrentTupleType>;
+    using property_type = typename std::tuple_element<current_size::value, TupleType>::type;
+    auto prop = props.back();
+    props.pop_back();
+    auto current = std::tuple_cat(current_tuple,std::make_tuple(prop.get<property_type>()));
+    return build_properties_tuple<TupleType, CurrentTupleType>(std::move(current), props);
+}
+
+template <class TupleType>
+auto build_properties_tuple(std::vector<json> &props)
 {
     using property_type = typename std::tuple_element<0, TupleType>::type;
-    if (props.size()) {
-        auto prop = props.back();
-        props.pop_back();
-        return build_properties_tuple<TupleType>(std::move(std::make_tuple(prop.get<property_type>())), props);
-    }
+    auto prop = props.back();
+    props.pop_back();
+    auto start = std::make_tuple(prop.get<property_type>());
+    return build_properties_tuple<TupleType>(std::move(start), props);
 }
 
 template <class Component>
@@ -106,7 +115,7 @@ Component *construct_component(json config)
         }
         properties.push_back(*p);
     }
-    // TODO
+    std::reverse(properties.begin(), properties.end());
     return new Component(build_properties_tuple<typename cdef_type::property_types>(properties));
 }
 
