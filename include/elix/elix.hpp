@@ -99,7 +99,7 @@ template <class Component>
 Component *construct_component(json config)
 {
     auto &cdef = Component::component_def;
-    using cdef_type = typename std::remove_reference<decltype(cdef)>::type;
+    using cdef_type = typename std::remove_reference_t<decltype(cdef)>;
     std::vector<json> properties;
     // check if all properties are defined
     for (const auto &prop : cdef.property_names) {
@@ -113,23 +113,25 @@ Component *construct_component(json config)
         properties.push_back(*p);
     }
     std::reverse(properties.begin(), properties.end());
-    return new Component(build_properties_tuple<typename cdef_type::property_types>(properties));
+    return new Component(
+        build_properties_tuple<typename cdef_type::property_types>(properties));
 }
 
 template <class ... Components>
 auto load(const std::string &jsonStr)
 {
-    auto&& json = json::parse(jsonStr);
+    auto&& entity_lib = json::parse(jsonStr);
     entity_list<Components...> entities;
+    auto&& entity_map = entity_lib.get<std::map<std::string, json>>();
 
-    for (const auto &entity: json) {
-        auto e = make_entity<Components ...>(entity["__name"]);
+    for (const auto &entity: entity_map) {
+        auto e = make_entity<Components ...>(entity.first);
         auto foreach_lambda = [&entity, &e](auto component)
         {
             using component_type = std::remove_pointer_t<decltype(component)>;
             auto &&cdef = component_type::component_def;
-            auto c = entity.find(cdef.name);
-            if (c == entity.end()) {
+            auto c = entity.second.find(cdef.name);
+            if (c == entity.second.end()) {
                 return;
             }
             if (!(*c).is_object()) {

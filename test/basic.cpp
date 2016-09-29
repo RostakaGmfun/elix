@@ -49,9 +49,8 @@ constexpr decltype(Spell::component_def) Spell::component_def;
 TEST_CASE( "Basic test", "[Basic]")
 {
     auto wizards_json = R"(
-    [
-        {
-            "__name": "Wizard1",
+    {
+        "Wizard1": {
             "position": {
                 "x": 10.5,
                 "y": 19.3
@@ -61,8 +60,7 @@ TEST_CASE( "Basic test", "[Basic]")
                 "damage": 42
             }
         },
-        {
-            "__name": "Wizard2",
+        "Wizard2": {
             "position": {
                 "x": 11.2,
                 "y": 7.6
@@ -72,14 +70,13 @@ TEST_CASE( "Basic test", "[Basic]")
                 "damage": 13
             }
         },
-        {
-            "__name": "Wizard3",
+        "Wizard3": {
             "position": {
                 "x": 3.3,
                 "y": 0
             }
         }
-    ]
+    }
     )";
 
     auto wizards = elix::load<Position, Spell>(wizards_json);
