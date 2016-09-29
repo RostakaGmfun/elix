@@ -1,26 +1,20 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 #include <string>
-#include <array>
 #include <tuple>
-#include <functional>
-#include <utility>
-#include <experimental/any>
 
-#include <ecf/ecf.hpp>
+#include <elix/elix.hpp>
 
 struct Position
 {
     using property_types = std::tuple<float, float>;
-    Position() = default;
-    ~Position() = default;
     Position(property_types &&prop_vals):
         x(std::get<0>(prop_vals)),
         y(std::get<1>(prop_vals))
     {}
 
     static constexpr auto component_def =
-        ecf::component_def<float, float>("position", {
+        elix::component_def<float, float>("position", {
             "x",
             "y"
         });
@@ -35,16 +29,13 @@ constexpr decltype(Position::component_def) Position::component_def;
 struct Spell
 {
     using property_types = std::tuple<std::string, int>;
-    Spell() = default;
-    ~Spell() = default;
-
     Spell(property_types &&prop_vals):
         name(std::get<0>(prop_vals)),
         damage(std::get<1>(prop_vals))
     {}
 
     static constexpr auto component_def =
-        ecf::component_def<std::string, int>("spell", {
+        elix::component_def<std::string, int>("spell", {
             "name",
             "damage"
         });
@@ -91,7 +82,7 @@ TEST_CASE( "Basic test", "[Basic]")
     ]
     )";
 
-    auto wizards = ecf::load<Position, Spell>(wizards_json);
+    auto wizards = elix::load<Position, Spell>(wizards_json);
     for(auto wizard : wizards) {
         std::cout << wizard.name << '\n';
         auto pos = wizard.get<Position>();

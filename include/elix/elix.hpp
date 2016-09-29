@@ -1,20 +1,17 @@
-#ifndef ECF_HPP
-#define ECF_HPP
+#ifndef ELIX_HPP
+#define ELIX_HPP
 
-#include <iostream>
-#include <fstream>
 #include <stdexcept>
 #include <tuple>
 #include <string>
 #include <map>
 #include <array>
 #include <functional>
-#include <experimental/any>
 #include <type_traits>
 
 #include <json.hpp>
 
-namespace ecf {
+namespace elix {
 
 using json = nlohmann::json;
 
@@ -63,7 +60,7 @@ void for_each_component(Func func)
 template <class Func, class Component, class ... Components>
 void for_each_component(Func func)
 {
-    func(Component{});
+    func(static_cast<Component*>(nullptr));
     for_each_component<Func, Components...>(func);
 }
 
@@ -129,7 +126,7 @@ auto load(const std::string &jsonStr)
         auto e = make_entity<Components ...>(entity["__name"]);
         auto foreach_lambda = [&entity, &e](auto component)
         {
-            using component_type = decltype(component);
+            using component_type = std::remove_pointer_t<decltype(component)>;
             auto &&cdef = component_type::component_def;
             auto c = entity.find(cdef.name);
             if (c == entity.end()) {
@@ -153,6 +150,6 @@ auto load(const std::string &jsonStr)
     return entities;
 }
 
-} // namespace ecf
+} // namespace elix
 
-#endif // ECF_HPP
+#endif // ELIX_HPP
