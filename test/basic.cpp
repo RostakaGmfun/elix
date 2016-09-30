@@ -5,6 +5,8 @@
 
 #include <elix/elix.hpp>
 
+using namespace elix::literals;
+
 struct Position
 {
     using property_types = std::tuple<float, float>;

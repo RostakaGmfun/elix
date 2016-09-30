@@ -15,6 +15,42 @@ namespace elix {
 
 using json = nlohmann::json;
 
+struct component_prop_name
+{
+    constexpr component_prop_name(const char *name, bool is_component = false):
+        name(name),
+        is_component(is_component)
+    {}
+
+    const char *name;
+    bool is_component;
+};
+
+namespace literals {
+
+    constexpr component_prop_name operator""_comp(const char *name, std::size_t length)
+    {
+        component_prop_name component_name(name, true);
+        return component_name;
+    }
+
+} // literals
+
+template <class ... Properties>
+struct component_def
+{
+    constexpr component_def(const char *name,
+            std::array<component_prop_name, sizeof...(Properties)> &&property_names):
+        name(name),
+        property_names(property_names)
+    {}
+    const char *name;
+    std::array<component_prop_name, sizeof...(Properties)> property_names;
+
+    using property_types = std::tuple<Properties...>;
+};
+
+
 template <class ... Components>
 struct entity
 {
@@ -26,20 +62,6 @@ struct entity
     {
         return std::get<Component*>(components);
     }
-};
-
-template <class ... Properties>
-struct component_def
-{
-    constexpr component_def(const char *name,
-            std::array<const char*, sizeof...(Properties)> &&property_names):
-        name(name),
-        property_names(property_names)
-    {}
-    const char *name;
-    std::array<const char*, sizeof...(Properties)> property_names;
-
-    using property_types = std::tuple<Properties...>;
 };
 
 template <class ... Components>
@@ -103,11 +125,12 @@ Component *construct_component(json config)
     std::vector<json> properties;
     // check if all properties are defined
     for (const auto &prop : cdef.property_names) {
-        auto p = config.find(prop);
+        auto p = config.find(prop.name);
+        std::cout << "Is component: " << prop.name << ' ' << prop.is_component << '\n';
         if (p == config.end()) {
             // Ooops, bad thing
             // There is currently no way to define default property value
-            throw std::runtime_error("Property " + std::string(prop) +
+            throw std::runtime_error("Property " + std::string(prop.name) +
                     " is undefined in component " + std::string(cdef.name));
         }
         properties.push_back(*p);
