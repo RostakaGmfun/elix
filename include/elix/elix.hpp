@@ -126,7 +126,6 @@ Component *construct_component(json config)
     // check if all properties are defined
     for (const auto &prop : cdef.property_names) {
         auto p = config.find(prop.name);
-        std::cout << "Is component: " << prop.name << ' ' << prop.is_component << '\n';
         if (p == config.end()) {
             // Ooops, bad thing
             // There is currently no way to define default property value
