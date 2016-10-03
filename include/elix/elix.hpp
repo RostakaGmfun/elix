@@ -92,11 +92,7 @@ auto build_properties_tuple(TupleType &&current_tuple, std::vector<json> &props)
     return current_tuple;
 }
 
-template <class TupleType, class CurrentTupleType,
-        class C = typename
-        std::enable_if<!std::is_same<std::decay_t<CurrentTupleType>,
-        std::decay_t<TupleType>>::value,
-        void>::type>
+template <class TupleType, class CurrentTupleType>
 auto build_properties_tuple(CurrentTupleType &&current_tuple, std::vector<json> &props)
 {
     using current_size = std::tuple_size<CurrentTupleType>;
@@ -124,17 +120,17 @@ Component *construct_component(json config)
     using cdef_type = typename std::remove_reference_t<decltype(cdef)>;
     std::vector<json> properties;
     // check if all properties are defined
-    for (const auto &prop : cdef.property_names) {
-        auto p = config.find(prop.name);
+    for (auto it = cdef.property_names.rbegin();
+            it != cdef.property_names.rend(); it++) {
+        auto p = config.find(it->name);
         if (p == config.end()) {
             // Ooops, bad thing
             // There is currently no way to define default property value
-            throw std::runtime_error("Property " + std::string(prop.name) +
+            throw std::runtime_error("Property " + std::string(it->name) +
                     " is undefined in component " + std::string(cdef.name));
         }
         properties.push_back(*p);
     }
-    std::reverse(properties.begin(), properties.end());
     return new Component(
         build_properties_tuple<typename cdef_type::property_types>(properties));
 }
