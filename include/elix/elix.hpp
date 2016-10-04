@@ -75,15 +75,10 @@ auto make_entity(const std::string &name)
 template <class ... Components>
 using entity_list = std::vector<entity<Components...>>;
 
-template <class Func>
-void for_each_component(Func func)
-{}
-
-template <class Func, class Component, class ... Components>
-void for_each_component(Func func)
+template <class Func, class ... C>
+void for_each_type(Func func)
 {
-    func(static_cast<Component*>(nullptr));
-    for_each_component<Func, Components...>(func);
+    (void)std::initializer_list<int> {(func(static_cast<C*>(nullptr)), 0)...};
 }
 
 template <class TupleType, class CurrentTupleType = TupleType>
@@ -163,7 +158,7 @@ auto load(const std::string &jsonStr)
                 throw std::runtime_error(e.name + ": " + err.what());
             }
         };
-        for_each_component<decltype(foreach_lambda),Components...>(foreach_lambda);
+        for_each_type<decltype(foreach_lambda),Components...>(foreach_lambda);
         entities.push_back(e);
     }
 
