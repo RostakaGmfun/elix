@@ -15,14 +15,13 @@ struct Position
         y(std::get<1>(prop_vals))
     {}
 
-    static constexpr auto component_def =
-        elix::component_def<float, float>("position", {
-            "x",
-            "y"
-        });
-
     float x;
     float y;
+
+    static constexpr auto component_def =
+        elix::component_def<Position, float, float>("position",
+        {"x", &Position::x},
+        {"y", &Position::y});
 };
 
 // I like C++ sooo much
@@ -36,14 +35,13 @@ struct Spell
         damage(std::get<1>(prop_vals))
     {}
 
-    static constexpr auto component_def =
-        elix::component_def<std::string, int>("spell", {
-            "name",
-            "damage"
-        });
-
     std::string name;
     int damage;
+
+    static constexpr auto component_def =
+        elix::component_def<Spell, std::string, int>("spell",
+        {"name", &Spell::name},
+        {"damage", &Spell::damage});
 };
 
 constexpr decltype(Spell::component_def) Spell::component_def;

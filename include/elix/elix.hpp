@@ -36,20 +36,22 @@ namespace literals {
 
 } // literals
 
-template <class ... Properties>
-struct component_def
+template <class Component, class ... Properties>
+class component_def
 {
-    constexpr component_def(const char *name,
-            std::array<component_prop_name, sizeof...(Properties)> &&property_names):
-        name(name),
-        property_names(property_names)
-    {}
-    const char *name;
-    std::array<component_prop_name, sizeof...(Properties)> property_names;
+    template <class Property>
+    using property_t = std::pair<component_prop_name, Property Component::*>;
 
+public:
+    constexpr component_def(const char *name, property_t<Properties>&& ... properties):
+        name(name),
+        properties(std::make_tuple(properties...))
+    {}
+
+    const char *name;
+    std::tuple<property_t<Properties>...> properties;
     using property_types = std::tuple<Properties...>;
 };
-
 
 template <class ... Components>
 struct entity
