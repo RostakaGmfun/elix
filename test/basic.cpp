@@ -9,12 +9,6 @@ using namespace elix::literals;
 
 struct Position
 {
-    using property_types = std::tuple<float, float>;
-    Position(property_types &&prop_vals):
-        x(std::get<0>(prop_vals)),
-        y(std::get<1>(prop_vals))
-    {}
-
     float x;
     float y;
 
@@ -29,12 +23,6 @@ constexpr decltype(Position::component_def) Position::component_def;
 
 struct Spell
 {
-    using property_types = std::tuple<std::string, int>;
-    Spell(property_types &&prop_vals):
-        name(std::get<0>(prop_vals)),
-        damage(std::get<1>(prop_vals))
-    {}
-
     std::string name;
     int damage;
 

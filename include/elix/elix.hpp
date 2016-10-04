@@ -44,30 +44,33 @@ struct component_def
     using property_t = std::pair<component_prop_name, Property Component::*>;
 
     using property_types = std::tuple<Properties...>;
+    using property_names_t = std::array<component_prop_name, sizeof...(Properties)>;
 
     const char *name;
-    std::tuple<property_t<Properties>...> properties;
+    std::tuple<Properties Component::*...> properties;
+    property_names_t property_names;
 
     constexpr component_def(const char *name, property_t<Properties>&& ... properties):
         name(name),
-        properties(std::make_tuple(properties...))
+        properties(std::make_tuple(properties.second...)),
+        property_names({properties.first...})
     {}
 
-    auto construct(property_types &&prop_vals)
+    auto construct(property_types &&prop_vals) const
     {
-        return construct<std::index_sequence_for<Properties...>>(prop_vals);
+        return construct(std::forward<property_types>(prop_vals),
+                std::index_sequence_for<Properties...>{});
     }
 
 private:
     template <std::size_t ... Is>
-    auto construct(property_types &&prop_vals)
+    auto construct(property_types &&prop_vals, std::index_sequence<Is...>) const
     {
-        Component c{};
+        auto c = new Component;
         (void)std::initializer_list<int>{
-            (c.*(std::get<Is>(properties).second) = std::get<Is>(prop_vals), 0)...};
+            (c->*(std::get<Is>(properties)) = std::get<Is>(prop_vals), 0)...};
         return c;
     }
-
 };
 
 template <class ... Components>
@@ -145,8 +148,7 @@ Component *construct_component(json config)
         }
         properties.push_back(*p);
     }
-    return new Component(
-        build_properties_tuple<typename cdef_type::property_types>(properties));
+    return cdef.construct(build_properties_tuple<typename cdef_type::property_types>(properties));
 }
 
 template <class ... Components>

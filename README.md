@@ -11,28 +11,17 @@ but this is going to change soon.
 ## Example
 
 ```c++
-#include <elix/elix.hpp>
-#include <iostream>
-
 // The component structure
 struct Position
 {
-    using property_types = std::tuple<float, float>;
-    // This is actually how the component will be constructed by elix
-    Position(property_types &&prop_vals):
-        x(std::get<0>(prop_vals)),
-        y(std::get<1>(prop_vals))
-    {}
-
-    // Define component name, property names and property types
-    static constexpr auto component_def =
-        elix::component_def<float, float>("position", {
-            "x", // property "x" of type float
-            "y"  // property "y" of type float
-        });
-
     float x;
     float y;
+
+    // Specify cpomponent's name, property types and property names
+    static constexpr auto component_def =
+        elix::component_def<Position, float, float>("position",
+        {"x", &Position::x},
+        {"y", &Position::y});
 };
 
 // I like C++ sooo much
@@ -41,20 +30,13 @@ constexpr decltype(Position::component_def) Position::component_def;
 // Another component
 struct Spell
 {
-    using property_types = std::tuple<std::string, int>;
-    Spell(property_types &&prop_vals):
-        name(std::get<0>(prop_vals)),
-        damage(std::get<1>(prop_vals))
-    {}
-
-    static constexpr auto component_def =
-        elix::component_def<std::string, int>("spell", {
-            "name",
-            "damage"
-        });
-
     std::string name;
     int damage;
+
+    static constexpr auto component_def =
+        elix::component_def<Spell, std::string, int>("spell",
+        {"name", &Spell::name},
+        {"damage", &Spell::damage});
 };
 
 constexpr decltype(Spell::component_def) Spell::component_def;
@@ -83,7 +65,7 @@ auto wizards_json = R"(
 }
 )";
 
-// Load JSON into a list of entities.
+// Load JSON into list of entities
 auto wizards = elix::load<Position, Spell>(wizards_json);
 for(auto wizard : wizards) {
     std::cout << wizard.name << '\n';
