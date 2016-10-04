@@ -8,6 +8,7 @@
 #include <array>
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 #include <json.hpp>
 
@@ -37,20 +38,36 @@ namespace literals {
 } // literals
 
 template <class Component, class ... Properties>
-class component_def
+struct component_def
 {
     template <class Property>
     using property_t = std::pair<component_prop_name, Property Component::*>;
 
-public:
+    using property_types = std::tuple<Properties...>;
+
+    const char *name;
+    std::tuple<property_t<Properties>...> properties;
+
     constexpr component_def(const char *name, property_t<Properties>&& ... properties):
         name(name),
         properties(std::make_tuple(properties...))
     {}
 
-    const char *name;
-    std::tuple<property_t<Properties>...> properties;
-    using property_types = std::tuple<Properties...>;
+    auto construct(property_types &&prop_vals)
+    {
+        return construct<std::index_sequence_for<Properties...>>(prop_vals);
+    }
+
+private:
+    template <std::size_t ... Is>
+    auto construct(property_types &&prop_vals)
+    {
+        Component c{};
+        (void)std::initializer_list<int>{
+            (c.*(std::get<Is>(properties).second) = std::get<Is>(prop_vals), 0)...};
+        return c;
+    }
+
 };
 
 template <class ... Components>
