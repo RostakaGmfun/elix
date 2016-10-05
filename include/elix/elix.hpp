@@ -56,19 +56,28 @@ struct component_def
         property_names({properties.first...})
     {}
 
-    auto construct(property_types &&prop_vals) const
+    auto construct(const json &props) const
     {
-        return construct(std::forward<property_types>(prop_vals),
-                std::index_sequence_for<Properties...>{});
+        // check if all properties are defined
+        for (auto prop : property_names) {
+            auto p = props.find(prop.name);
+            if (p == props.end()) {
+                // Ooops, bad thing
+                // There is currently no way to define default property value
+                throw std::runtime_error("Property " + std::string(prop.name) +
+                        " is undefined in component " + std::string(name));
+            }
+        }
+        return construct(props, std::index_sequence_for<Properties...>{});
     }
 
 private:
     template <std::size_t ... Is>
-    auto construct(property_types &&prop_vals, std::index_sequence<Is...>) const
+    auto construct(const json &props, std::index_sequence<Is...>) const
     {
         auto c = new Component;
         (void)std::initializer_list<int>{
-            (c->*(std::get<Is>(properties)) = std::get<Is>(prop_vals), 0)...};
+            (c->*(std::get<Is>(properties)) = props[std::get<Is>(property_names).name], 0)...};
         return c;
     }
 };
@@ -103,54 +112,6 @@ void for_each_type(Func func)
     (void)std::initializer_list<int> {(func(static_cast<C*>(nullptr)), 0)...};
 }
 
-template <class TupleType, class CurrentTupleType = TupleType>
-auto build_properties_tuple(TupleType &&current_tuple, std::vector<json> &props)
-{
-    return current_tuple;
-}
-
-template <class TupleType, class CurrentTupleType>
-auto build_properties_tuple(CurrentTupleType &&current_tuple, std::vector<json> &props)
-{
-    using current_size = std::tuple_size<CurrentTupleType>;
-    using property_type = typename std::tuple_element<current_size::value, TupleType>::type;
-    auto prop = props.back();
-    props.pop_back();
-    auto current = std::tuple_cat(current_tuple,std::make_tuple(prop.get<property_type>()));
-    return build_properties_tuple<TupleType, CurrentTupleType>(std::move(current), props);
-}
-
-template <class TupleType>
-auto build_properties_tuple(std::vector<json> &props)
-{
-    using property_type = typename std::tuple_element<0, TupleType>::type;
-    auto prop = props.back();
-    props.pop_back();
-    auto start = std::make_tuple(prop.get<property_type>());
-    return build_properties_tuple<TupleType>(std::move(start), props);
-}
-
-template <class Component>
-Component *construct_component(json config)
-{
-    auto &cdef = Component::component_def;
-    using cdef_type = typename std::remove_reference_t<decltype(cdef)>;
-    std::vector<json> properties;
-    // check if all properties are defined
-    for (auto it = cdef.property_names.rbegin();
-            it != cdef.property_names.rend(); it++) {
-        auto p = config.find(it->name);
-        if (p == config.end()) {
-            // Ooops, bad thing
-            // There is currently no way to define default property value
-            throw std::runtime_error("Property " + std::string(it->name) +
-                    " is undefined in component " + std::string(cdef.name));
-        }
-        properties.push_back(*p);
-    }
-    return cdef.construct(build_properties_tuple<typename cdef_type::property_types>(properties));
-}
-
 template <class ... Components>
 auto load(const std::string &jsonStr)
 {
@@ -174,7 +135,7 @@ auto load(const std::string &jsonStr)
             }
             auto &componentPtr = e.template get<component_type>();
             try {
-                componentPtr = construct_component<component_type>(*c);
+                componentPtr = cdef.construct(*c);
             } catch (std::runtime_error err) {
                 throw std::runtime_error(e.name + ": " + err.what());
             }
