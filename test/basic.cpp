@@ -5,8 +5,6 @@
 
 #include <elix/elix.hpp>
 
-using namespace elix::literals;
-
 struct Position
 {
     float x;
@@ -25,11 +23,13 @@ struct Spell
 {
     std::string name;
     int damage;
+    Position position;
 
     static constexpr auto component_def =
-        elix::component_def<Spell, std::string, int>("spell",
+        elix::component_def<Spell, std::string, int, Position>("spell",
         {"name", &Spell::name},
-        {"damage", &Spell::damage});
+        {"damage", &Spell::damage},
+        {"position", &Spell::position});
 };
 
 constexpr decltype(Spell::component_def) Spell::component_def;
@@ -45,7 +45,11 @@ TEST_CASE( "Basic test", "[Basic]")
             },
             "spell": {
                 "name": "Spell1",
-                "damage": 42
+                "damage": 42,
+                "position": {
+                    "x": 15,
+                    "y": 13
+                }
             }
         },
         "Wizard2": {
@@ -55,7 +59,11 @@ TEST_CASE( "Basic test", "[Basic]")
             },
             "spell": {
                 "name": "Spell2",
-                "damage": 13
+                "damage": 13,
+                "position": {
+                    "x": 12,
+                    "y": 16.8
+                }
             }
         },
         "Wizard3": {

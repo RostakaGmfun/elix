@@ -16,35 +16,46 @@ namespace elix {
 
 using json = nlohmann::json;
 
-struct component_prop_name
-{
-    constexpr component_prop_name(const char *name, bool is_component = false):
-        name(name),
-        is_component(is_component)
-    {}
+template <class>
+struct pointer_to_member;
 
-    const char *name;
-    bool is_component;
+template <class C, class T>
+struct pointer_to_member<T C::*>
+{
+    using class_type = C;
+    using member_type = T;
 };
 
-namespace literals {
+template <class C, typename = int>
+struct is_component:
+    std::false_type {};
 
-    constexpr component_prop_name operator""_comp(const char *name, std::size_t length)
+template <class C>
+struct is_component<C, decltype((void)C::component_def, 0)>:
+    std::true_type {};
+
+template <class Component, class = int>
+struct property_constructor
+{
+    property_constructor(const json &data)
     {
-        component_prop_name component_name(name, true);
-        return component_name;
+
     }
 
-} // literals
+    operator()()
+    {
+
+    }
+};
 
 template <class Component, class ... Properties>
 struct component_def
 {
     template <class Property>
-    using property_t = std::pair<component_prop_name, Property Component::*>;
+    using property_t = std::pair<const char*, Property Component::*>;
 
     using property_types = std::tuple<Properties...>;
-    using property_names_t = std::array<component_prop_name, sizeof...(Properties)>;
+    using property_names_t = std::array<const char*, sizeof...(Properties)>;
 
     const char *name;
     std::tuple<Properties Component::*...> properties;
@@ -56,29 +67,44 @@ struct component_def
         property_names({properties.first...})
     {}
 
-    auto construct(const json &props) const
+    auto construct(const json &props, Component *cptr) const
     {
         // check if all properties are defined
         for (auto prop : property_names) {
-            auto p = props.find(prop.name);
+            auto p = props.find(prop);
             if (p == props.end()) {
                 // Ooops, bad thing
                 // There is currently no way to define default property value
-                throw std::runtime_error("Property " + std::string(prop.name) +
+                throw std::runtime_error("Property " + std::string(prop) +
                         " is undefined in component " + std::string(name));
             }
         }
-        return construct(props, std::index_sequence_for<Properties...>{});
+
+        if (cptr == nullptr) {
+            cptr = new Component;
+        }
+        construct_impl(props, *cptr, std::index_sequence_for<Properties...>{});
+        return cptr;
     }
 
 private:
     template <std::size_t ... Is>
-    auto construct(const json &props, std::index_sequence<Is...>) const
+    void construct_impl(const json &props, Component & c, std::index_sequence<Is...>) const
     {
-        auto c = new Component;
         (void)std::initializer_list<int>{
-            (c->*(std::get<Is>(properties)) = props[std::get<Is>(property_names).name], 0)...};
-        return c;
+            (construct_property(props[property_names[Is]], std::get<Is>(properties), &c), 0)...};
+    }
+
+    template <class T, class = int>
+    void construct_property(const json &props, T &property, Component *c) const
+    {
+        c->*property = props;
+    }
+
+    template <class T, class C = std::enable_if_t<is_component<T>::value, T>>
+    void construct_property(const json &props, C &property, Component *c) const
+    {
+        C::component_def.construct(&(c->*property));
     }
 };
 
@@ -135,7 +161,7 @@ auto load(const std::string &jsonStr)
             }
             auto &componentPtr = e.template get<component_type>();
             try {
-                componentPtr = cdef.construct(*c);
+                componentPtr = cdef.construct(*c, nullptr);
             } catch (std::runtime_error err) {
                 throw std::runtime_error(e.name + ": " + err.what());
             }
