@@ -32,11 +32,14 @@ struct Spell
 {
     std::string name;
     int damage;
+    // You can nest components
+    Position position;
 
     static constexpr auto component_def =
-        elix::component_def<Spell, std::string, int>("spell",
+        elix::component_def<Spell, std::string, int, Position>("spell",
         {"name", &Spell::name},
-        {"damage", &Spell::damage});
+        {"damage", &Spell::damage},
+        {"position", &Spell::position});
 };
 
 constexpr decltype(Spell::component_def) Spell::component_def;
@@ -53,7 +56,11 @@ auto wizards_json = R"(
         },
         "spell": {
             "name": "Spell1",
-            "damage": 42
+            "damage": 42,
+            "position": {
+                "x": 8.8,
+                "y": 0.1
+            }
         }
     },
     "Wizard2": {
@@ -76,6 +83,7 @@ for(auto wizard : wizards) {
     auto spell = wizard.get<Spell>();
     if (spell) {
         std::cout << "Spell: " << spell->name << ' ' << spell->damage << '\n';
+        std::cout << "Spell position: " << spell->position.x << ' ' << spell->position.y << '\n';
     } else {
         std::cout << wizard.name << " is not a wizard\n";
     }
@@ -89,6 +97,6 @@ The project is under early development and currently has more limitations than f
 * Supports JSON only.
 * No serialization support at the moment.
 * Supported component's property types are limited to those supported by [json](https://github.com/nlohmann/json) library.
-* Nested components are not supported (this feature is under active development).
+* ~~Nested components are not supported~~.
 * Unfriendly compile-time errors reporting.
 * No support for custom component allocators.

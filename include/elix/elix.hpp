@@ -16,16 +16,7 @@ namespace elix {
 
 using json = nlohmann::json;
 
-template <class>
-struct pointer_to_member;
-
-template <class C, class T>
-struct pointer_to_member<T C::*>
-{
-    using class_type = C;
-    using member_type = T;
-};
-
+// Brilliant idea from http://stackoverflow.com/a/16000226
 template <class C, typename = int>
 struct is_component:
     std::false_type {};
@@ -34,19 +25,6 @@ template <class C>
 struct is_component<C, decltype((void)C::component_def, 0)>:
     std::true_type {};
 
-template <class Component, class = int>
-struct property_constructor
-{
-    property_constructor(const json &data)
-    {
-
-    }
-
-    operator()()
-    {
-
-    }
-};
 
 template <class Component, class ... Properties>
 struct component_def
@@ -89,23 +67,24 @@ struct component_def
 
 private:
     template <std::size_t ... Is>
-    void construct_impl(const json &props, Component & c, std::index_sequence<Is...>) const
+    void construct_impl(const json &props, Component &c, std::index_sequence<Is...>) const
     {
         (void)std::initializer_list<int>{
-            (construct_property(props[property_names[Is]], std::get<Is>(properties), &c), 0)...};
+            (construct_property(props[property_names[Is]], &c, std::get<Is>(properties)), 0)...};
     }
 
-    template <class T, class = int>
-    void construct_property(const json &props, T &property, Component *c) const
+    template <class T, typename std::enable_if<is_component<T>::value>::type* = nullptr>
+    void construct_property(const json &data, Component *c, T Component::*property) const
     {
-        c->*property = props;
+        T::component_def.construct(data, &(c->*property));
     }
 
-    template <class T, class C = std::enable_if_t<is_component<T>::value, T>>
-    void construct_property(const json &props, C &property, Component *c) const
+    template <class T, typename std::enable_if<!is_component<T>::value>::type* = nullptr>
+    void construct_property(const json &data, Component *c, T Component::*property) const
     {
-        C::component_def.construct(&(c->*property));
+        c->*property = data;
     }
+
 };
 
 template <class ... Components>

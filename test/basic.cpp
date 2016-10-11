@@ -85,6 +85,7 @@ TEST_CASE( "Basic test", "[Basic]")
         auto spell = wizard.get<Spell>();
         if (spell) {
             std::cout << "Spell: " << spell->name << ' ' << spell->damage << '\n';
+            std::cout << "Spell position: " << spell->position.x << ' ' << spell->position.y << '\n';
         } else {
             std::cout << wizard.name << " is not a wizard\n";
         }
