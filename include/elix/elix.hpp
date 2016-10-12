@@ -45,7 +45,12 @@ struct component_def
         property_names({properties.first...})
     {}
 
-    auto construct(const json &props, Component *cptr) const
+    void encode(json &output, const Component *cptr) const
+    {
+        encode_impl(output, cptr, std::index_sequence_for<Properties...>{});
+    }
+
+    auto decode(const json &props, Component *cptr) const
     {
         // check if all properties are defined
         for (auto prop : property_names) {
@@ -61,28 +66,47 @@ struct component_def
         if (cptr == nullptr) {
             cptr = new Component;
         }
-        construct_impl(props, *cptr, std::index_sequence_for<Properties...>{});
+        decode_impl(props, *cptr, std::index_sequence_for<Properties...>{});
         return cptr;
     }
 
 private:
     template <std::size_t ... Is>
-    void construct_impl(const json &props, Component &c, std::index_sequence<Is...>) const
+    void encode_impl(json &out, const Component *c, std::index_sequence<Is...>) const
     {
-        (void)std::initializer_list<int>{
-            (construct_property(props[property_names[Is]], &c, std::get<Is>(properties)), 0)...};
+        (void)std::initializer_list<int>{(encode_property(out[property_names[Is]],
+                c->*std::get<Is>(properties)), 0)...};
     }
 
     template <class T, typename std::enable_if<is_component<T>::value>::type* = nullptr>
-    void construct_property(const json &data, Component *c, T Component::*property) const
+    void encode_property(json &data, const T &prop) const
     {
-        T::component_def.construct(data, &(c->*property));
+        T::component_def.encode(data, &prop);
     }
 
     template <class T, typename std::enable_if<!is_component<T>::value>::type* = nullptr>
-    void construct_property(const json &data, Component *c, T Component::*property) const
+    void encode_property(json &data, const T &prop) const
     {
-        c->*property = data;
+        data = prop;
+    }
+
+    template <std::size_t ... Is>
+    void decode_impl(const json &props, Component &c, std::index_sequence<Is...>) const
+    {
+        (void)std::initializer_list<int>{
+            (decode_property(props[property_names[Is]], c.*std::get<Is>(properties)), 0)...};
+    }
+
+    template <class T, typename std::enable_if<is_component<T>::value>::type* = nullptr>
+    void decode_property(const json &data, T &property) const
+    {
+        T::component_def.decode(data, &property);
+    }
+
+    template <class T, typename std::enable_if<!is_component<T>::value>::type* = nullptr>
+    void decode_property(const json &data, T &property) const
+    {
+        property = data;
     }
 
 };
@@ -92,6 +116,9 @@ struct entity
 {
     std::tuple<Components*...> components;
     std::string name;
+
+    entity(std::string name): name(std::move(name))
+    {}
 
     template <class Component>
     Component* &get()
@@ -103,8 +130,7 @@ struct entity
 template <class ... Components>
 auto make_entity(const std::string &name)
 {
-    entity<Components...> e;
-    e.name = name;
+    entity<Components...> e(name);
     return e;
 }
 
@@ -117,8 +143,20 @@ void for_each_type(Func func)
     (void)std::initializer_list<int> {(func(static_cast<C*>(nullptr)), 0)...};
 }
 
+template <class Func, class ... C>
+void for_each_value(const std::tuple<C...> &values, Func f)
+{
+    for_each_value_impl(values, f, std::index_sequence_for<C...>{});
+}
+
+template <class Func, class Tuple, size_t ... Is>
+void for_each_value_impl(const Tuple &tuple, Func f, std::index_sequence<Is...>)
+{
+    (void)std::initializer_list<int>{(f(std::get<Is>(tuple)), 0)...};
+}
+
 template <class ... Components>
-auto load(const std::string &jsonStr)
+auto decode(const std::string &jsonStr)
 {
     auto&& entity_lib = json::parse(jsonStr);
     entity_list<Components...> entities;
@@ -140,7 +178,7 @@ auto load(const std::string &jsonStr)
             }
             auto &componentPtr = e.template get<component_type>();
             try {
-                componentPtr = cdef.construct(*c, nullptr);
+                componentPtr = cdef.decode(*c, nullptr);
             } catch (std::runtime_error err) {
                 throw std::runtime_error(e.name + ": " + err.what());
             }
@@ -150,6 +188,27 @@ auto load(const std::string &jsonStr)
     }
 
     return entities;
+}
+
+template <class ... Components>
+auto encode(const entity_list<Components...> &entities)
+{
+    json output;
+    for (const auto &entity : entities) {
+        json e;
+        auto foreach_lambda = [&e](const auto &component)
+        {
+            if (component != nullptr) {
+                json c;
+                component->component_def.encode(c, component);
+                e[component->component_def.name] = c;
+            }
+        };
+        for_each_value(entity.components, foreach_lambda);
+        output[entity.name] = e;
+    }
+
+    return output;
 }
 
 } // namespace elix

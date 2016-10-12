@@ -34,7 +34,7 @@ struct Spell
 
 constexpr decltype(Spell::component_def) Spell::component_def;
 
-TEST_CASE( "Basic test", "[Basic]")
+TEST_CASE( "Decode test", "[Decode]")
 {
     auto wizards_json = R"(
     {
@@ -75,7 +75,7 @@ TEST_CASE( "Basic test", "[Basic]")
     }
     )";
 
-    auto wizards = elix::load<Position, Spell>(wizards_json);
+    auto wizards = elix::decode<Position, Spell>(wizards_json);
     for(auto wizard : wizards) {
         std::cout << wizard.name << '\n';
         auto pos = wizard.get<Position>();
@@ -90,4 +90,20 @@ TEST_CASE( "Basic test", "[Basic]")
             std::cout << wizard.name << " is not a wizard\n";
         }
     }
+}
+
+TEST_CASE("Encode test" "[Encode]")
+{
+    elix::entity<Position, Spell> wizard("wizard");
+    auto &pos = wizard.get<Position>();
+    pos = new Position();
+    pos->x = 10;
+    pos->y = 20;
+    auto &spell = wizard.get<Spell>();
+    spell = new Spell();
+    spell->name = "spell";
+    spell->position = *pos;
+    spell->damage = 13;
+
+    std::cout << elix::encode<Position, Spell>({wizard}).dump(4) << '\n';
 }
