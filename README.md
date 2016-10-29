@@ -1,7 +1,7 @@
 # elix
 
-elix is a C++ entity-component (de)serialization library without code generation.
-This literally means that C++ compiler generates all the code required for (de)serialization with as little help from user as possible.
+elix is a C++ entity-component serialization library without code generation.
+This literally means that C++ compiler generates all the code required for serialization and deserialization with as little help from user as possible.
 
 ## Dependencies
 
@@ -14,12 +14,12 @@ but this is going to change soon.
 // The component structure
 struct Position
 {
-    float x;
-    float y;
+    double x;
+    double y;
 
     // Specify cpomponent's name, property types and property names
     static constexpr auto component_def =
-        elix::component_def<Position, float, float>("position",
+        elix::component_def<Position, double, double>("position",
         {"x", &Position::x},
         {"y", &Position::y});
 };
@@ -72,22 +72,29 @@ auto wizards_json = R"(
 }
 )";
 
-// Load JSON into list of entities
+// Load JSON into list of entities, print them and make some changes
 auto wizards = elix::load<Position, Spell>(wizards_json);
 for(auto wizard : wizards) {
     std::cout << wizard.name << '\n';
     auto pos = wizard.get<Position>();
     if (pos) {
         std::cout << "Position: " << pos->x << ' ' << pos->y << '\n';
+        pos->x += 10;
+        pos->y += 5;
     }
     auto spell = wizard.get<Spell>();
     if (spell) {
         std::cout << "Spell: " << spell->name << ' ' << spell->damage << '\n';
         std::cout << "Spell position: " << spell->position.x << ' ' << spell->position.y << '\n';
+        spell->damage -= 7;
     } else {
         std::cout << wizard.name << " is not a wizard\n";
     }
+
 }
+
+// Serialize back into JSON
+std::cout << elix::encode<Position, Spell>(wizards).dump(4) << '\n';
 ```
 
 ## Current limitations
@@ -95,7 +102,7 @@ for(auto wizard : wizards) {
 The project is under early development and currently has more limitations than features:
 
 * Supports JSON only.
-* No serialization support at the moment.
+* ~~No serialization support at the moment~~.
 * Supported component's property types are limited to those supported by [json](https://github.com/nlohmann/json) library.
 * ~~Nested components are not supported~~.
 * Unfriendly compile-time errors reporting.

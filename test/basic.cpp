@@ -7,11 +7,11 @@
 
 struct Position
 {
-    float x;
-    float y;
+    double x;
+    double y;
 
     static constexpr auto component_def =
-        elix::component_def<Position, float, float>("position",
+        elix::component_def<Position, double, double>("position",
         {"x", &Position::x},
         {"y", &Position::y});
 };
