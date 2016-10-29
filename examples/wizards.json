@@ -1,0 +1,36 @@
+{
+    "Wizard1": {
+        "position": {
+            "x": 10.5,
+            "y": 19.3
+        },
+        "spell": {
+            "name": "Spell1",
+            "damage": 42,
+            "position": {
+                "x": 15,
+                "y": 13
+            }
+        }
+    },
+    "Wizard2": {
+        "position": {
+            "x": 11.2,
+            "y": 7.6
+        },
+        "spell": {
+            "name": "Spell2",
+            "damage": 13,
+            "position": {
+                "x": 12,
+                "y": 16.8
+            }
+        }
+    },
+    "Wizard3": {
+        "position": {
+            "x": 3.3,
+            "y": 0
+        }
+    }
+}

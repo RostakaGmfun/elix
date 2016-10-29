@@ -6,3 +6,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(elix INTERFACE)
 target_include_directories(elix INTERFACE include/ json/src Catch/single_include)
 add_subdirectory(test)
+
+add_subdirectory(examples)
