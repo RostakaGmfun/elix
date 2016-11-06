@@ -5,8 +5,7 @@ This literally means that C++ compiler generates all the code required for seria
 
 ## Dependencies
 
-Elix relies on the [json](https://github.com/nlohmann/json) library and currently supports only deserialization from JSON,
-but this is going to change soon.
+Elix relies on the [json](https://github.com/nlohmann/json) library and requires compiler with decent C++14 support.
 
 ## Example
 
@@ -17,7 +16,7 @@ struct Position
     double x;
     double y;
 
-    // Specify cpomponent's name, property types and property names
+    // Specify component's name, property types and property names
     static constexpr auto component_def =
         elix::component_def<Position, double, double>("position",
         {"x", &Position::x},
@@ -99,7 +98,7 @@ std::cout << elix::encode<Position, Spell>(wizards).dump(4) << '\n';
 
 ## Current limitations
 
-The project is under early development and currently has more limitations than features:
+The project is under early development and currently has some limitations:
 
 * Supports JSON only.
 * ~~No serialization support at the moment~~.
